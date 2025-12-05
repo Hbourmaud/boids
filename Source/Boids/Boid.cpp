@@ -31,9 +31,7 @@ void ABoid::Tick(const float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	ApplyCohesion();
-	ApplyAlignment();
-	ApplySeparation();
+	ApplyBoidBehaviors();
 
 	const FVector CurrentPosition = GetActorLocation();
 	const FVector NewPosition = CurrentPosition + (Direction * Speed * DeltaTime);
@@ -42,7 +40,7 @@ void ABoid::Tick(const float DeltaTime)
 	SetActorRotation(Direction.Rotation());
 }
 
-void ABoid::ApplySeparation()
+void ABoid::ApplyBoidBehaviors()
 {
 	if (!Spawner || AllBoids.Num() == 0)
 	{
@@ -50,9 +48,22 @@ void ABoid::ApplySeparation()
 	}
 
 	const FVector BoidPosition = GetActorLocation();
+
+	const float MaxSeparationDist = Spawner->MaxSeparationDistance;
+	const float MaxAlignmentDist = Spawner->MaxAlignmentDistance;
+	const float MaxCohesionDist = Spawner->MaxCohesionDistance;
+
+	const float SeparationStrength = Spawner->SeparationStrength;
+	const float AlignmentStrength = Spawner->AlignmentStrength;
+	const float CohesionStrength = Spawner->CohesionStrength;
+
 	FVector SeparationDirection = Direction;
-	const float MaxDistance = Spawner->MaxSeparationDistance;
-	const float Strength = Spawner->SeparationStrength;
+	FVector AlignmentDirection = FVector::ZeroVector;
+	FVector Centroid = FVector::ZeroVector;
+
+	int32 SeparationCount = 0;
+	int32 AlignmentCount = 0;
+	int32 CohesionCount = 0;
 
 	for (ABoid* OtherBoid : AllBoids)
 	{
@@ -65,12 +76,16 @@ void ABoid::ApplySeparation()
 		const FVector DifferenceVector = BoidPosition - OtherPosition;
 		const float Distance = DifferenceVector.Size();
 
-		if (Distance < MaxDistance && Distance > 0.0f)
+		const bool IsInFOV = IsInFieldOfView(OtherPosition);
+
+		// SEPARATION
+		if (IsInFOV && Distance < MaxSeparationDist && Distance > 0.0f)
 		{
-			const float Ratio = 1.0f - (Distance / MaxDistance);
+			const float Ratio = 1.0f - (Distance / MaxSeparationDist);
 			const FVector OtherDirection = DifferenceVector.GetSafeNormal();
 
-			SeparationDirection += OtherDirection * Ratio * Strength;
+			SeparationDirection += OtherDirection * Ratio * SeparationStrength;
+			SeparationCount++;
 
 			if (Spawner->ShowDebugSeparation) {
 				DrawDebugLine(
@@ -85,52 +100,12 @@ void ABoid::ApplySeparation()
 				);
 			}
 		}
-	}
 
-	Direction = SeparationDirection.GetSafeNormal();
-
-	if (Spawner->ShowDebugSeparation) {
-		DrawDebugLine(
-			GetWorld(),
-			BoidPosition,
-			BoidPosition + Direction * 100.0f,
-			FColor::Green,
-			false,
-			-1.0f,
-			0,
-			3.0f
-		);
-	}
-}
-
-void ABoid::ApplyAlignment()
-{
-	if (!Spawner || AllBoids.Num() == 0)
-	{
-		return;
-	}
-
-	const FVector BoidPosition = GetActorLocation();
-	const float MaxDistance = Spawner->MaxAlignmentDistance;
-	const float Strength = Spawner->AlignmentStrength;
-
-	FVector AlignmentDirection = FVector::ZeroVector;
-	int32 NeighbourCount = 0;
-
-	for (ABoid* OtherBoid : AllBoids)
-	{
-		if (OtherBoid == this || !OtherBoid)
-		{
-			continue;
-		}
-
-		const FVector OtherPosition = OtherBoid->GetActorLocation();
-		const float Distance = FVector::Dist(BoidPosition, OtherPosition);
-
-		if (Distance < MaxDistance)
+		// ALIGNMENT
+		if (IsInFOV && Distance < MaxAlignmentDist)
 		{
 			AlignmentDirection += OtherBoid->Direction;
-			NeighbourCount++;
+			AlignmentCount++;
 
 			if (Spawner->ShowDebugAlignment) {
 				DrawDebugLine(
@@ -144,56 +119,12 @@ void ABoid::ApplyAlignment()
 				);
 			}
 		}
-	}
 
-	if (NeighbourCount > 0)
-	{
-		AlignmentDirection = AlignmentDirection.GetSafeNormal();
-
-		Direction = (Direction + AlignmentDirection * Strength).GetSafeNormal();
-
-		if (Spawner->ShowDebugAlignment) {
-			DrawDebugLine(
-				GetWorld(),
-				BoidPosition,
-				BoidPosition + AlignmentDirection * 80.0f,
-				FColor::Yellow,
-				false,
-				-1.0f,
-				0, 2.0f
-			);
-		}
-	}
-}
-
-void ABoid::ApplyCohesion()
-{
-	if (!Spawner || AllBoids.Num() == 0)
-	{
-		return;
-	}
-
-	const FVector BoidPosition = GetActorLocation();
-	const float MaxDistance = Spawner->MaxCohesionDistance;
-	const float Strength = Spawner->CohesionStrength;
-
-	FVector Centroid = FVector::ZeroVector;
-	int32 NeighbourCount = 0;
-
-	for (ABoid* OtherBoid : AllBoids)
-	{
-		if (OtherBoid == this || !OtherBoid)
-		{
-			continue;
-		}
-
-		const FVector OtherPosition = OtherBoid->GetActorLocation();
-		const float Distance = FVector::Dist(BoidPosition, OtherPosition);
-
-		if (Distance < MaxDistance)
+		// COHESION
+		if (IsInFOV && Distance < MaxCohesionDist)
 		{
 			Centroid += OtherPosition;
-			NeighbourCount++;
+			CohesionCount++;
 
 			if (Spawner->ShowDebugCohesion) {
 				DrawDebugLine(
@@ -210,35 +141,112 @@ void ABoid::ApplyCohesion()
 		}
 	}
 
-	if (NeighbourCount > 0)
+	FVector NewDirection = Direction;
+
+	if (CohesionCount > 0)
 	{
-		Centroid /= NeighbourCount;
+		Centroid /= CohesionCount;
 
 		const FVector CohesionDirection = (Centroid - BoidPosition).GetSafeNormal();
 
-		Direction = (Direction + CohesionDirection * Strength).GetSafeNormal();
+		NewDirection += CohesionDirection * CohesionStrength;
 
 		if (Spawner->ShowDebugCohesion) {
+			DrawDebugLine(
+				GetWorld(),
+				BoidPosition,
+				Centroid,
+				FColor::Magenta,
+				false,
+				-1.0f,
+				0, 2.0f
+			);
+			DrawDebugSphere(
+				GetWorld(),
+				Centroid,
+				10.0f,
+				8,
+				FColor::Magenta,
+				false,
+				-1.0f,
+				0,
+				2.0f
+			);
+		}
+	}
+
+	if (AlignmentCount > 0)
+	{
+		AlignmentDirection = AlignmentDirection.GetSafeNormal();
+
+		NewDirection += AlignmentDirection * AlignmentStrength;
+
+		if (Spawner->ShowDebugAlignment) {
+			DrawDebugLine(
+				GetWorld(),
+				BoidPosition,
+				BoidPosition + AlignmentDirection * 80.0f,
+				FColor::Yellow,
+				false,
+				-1.0f,
+				0, 2.0f
+			);
+		}
+	}
+
+	if (SeparationCount > 0)
+	{
+		SeparationDirection = SeparationDirection.GetSafeNormal();
+		NewDirection += SeparationDirection * SeparationStrength;
+	}
+
+	Direction = NewDirection.GetSafeNormal();
+
+	if (Spawner->ShowDebugSeparation) {
 		DrawDebugLine(
 			GetWorld(),
 			BoidPosition,
-			Centroid,
-			FColor::Magenta,
-			false,
-			-1.0f,
-			0, 2.0f
-		);
-		DrawDebugSphere(
-			GetWorld(),
-			Centroid,
-			10.0f,
-			8,
-			FColor::Magenta,
+			BoidPosition + Direction * 100.0f,
+			FColor::Green,
 			false,
 			-1.0f,
 			0,
-			2.0f
+			3.0f
 		);
-		}
 	}
+}
+
+bool ABoid::IsInFieldOfView(const FVector& OtherPosition) const
+{
+	if (!Spawner)
+	{
+		return true; // needed
+	}
+
+	const FVector BoidPosition = GetActorLocation();
+	const FVector BoidForward = Direction;
+	const FVector DistanceToOther = (OtherPosition - BoidPosition).GetSafeNormal();
+
+	const float DotProduct = FVector::DotProduct(BoidForward, DistanceToOther); // to rename
+
+	const float AngleRadians = FMath::Acos(DotProduct); // to rename
+	const float AngleDegrees = FMath::RadiansToDegrees(AngleRadians);
+
+	const bool IsInView = AngleDegrees <= Spawner->ViewAngle; // refacto ?
+
+	if (Spawner->ShowDebugFOV && !IsInView)
+	{
+		DrawDebugLine(
+			GetWorld(),
+			BoidPosition,
+			OtherPosition,
+			FColor::Orange,
+			false,
+			-1.0f,
+			0,
+			1.0f
+		);
+	}
+
+	return IsInView;
 }

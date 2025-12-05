@@ -33,9 +33,7 @@ public:
 	UPROPERTY()
 	TArray<ABoid*> AllBoids;
 
-	void ApplyAlignment();
+	void ApplyBoidBehaviors();
 
-	void ApplySeparation();
-
-	void ApplyCohesion();
+	bool IsInFieldOfView(const FVector& OtherPosition) const;
 };

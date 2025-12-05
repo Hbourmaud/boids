@@ -20,13 +20,13 @@ public:
 	USceneComponent* Root;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner")
-	int32 NumberOfBoids = 10;
+	int32 NumberOfBoids = 100;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner")
-	float SpawnRadius = 500.0f;
+	float SpawnRadius = 400.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boid Behavior")
-	float BoidSpeed = 100.0f;
+	float BoidSpeed = 700.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boid Debug")
 	bool ShowDebugSeparation = false;
@@ -54,6 +54,12 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boid Behavior")
 	float CohesionStrength = 0.3f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boid Debug")
+	bool ShowDebugFOV = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boid Behavior", meta = (ClampMin = "0.0", ClampMax = "180.0"))
+	float ViewAngle = 120.0f;
 
 	UPROPERTY()
 	TArray<ABoid*> SpawnedBoids;
