@@ -31,6 +31,8 @@ void ABoid::Tick(const float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	ApplyObjectAvoidance();
+
 	ApplyBoidBehaviors();
 
 	const FVector CurrentPosition = GetActorLocation();
@@ -214,6 +216,143 @@ void ABoid::ApplyBoidBehaviors()
 			3.0f
 		);
 	}
+}
+
+void ABoid::ApplyObjectAvoidance()
+{
+	if (!Spawner)
+	{
+		return;
+	}
+
+	const FVector BoidPosition = GetActorLocation();
+	const float AvoidanceDistance = Spawner->AvoidanceDistance;
+	const int32 RayCount = Spawner->AvoidanceRayCount;
+	const float AvoidanceStrength = Spawner->AvoidanceStrength;
+
+	TArray<FVector> RayDirections = GenerateGoldenSpherePoints(RayCount);
+
+	FVector AvoidanceVector = FVector::ZeroVector;
+	int32 HitCount = 0;
+
+	for (const FVector& LocalDirection : RayDirections)
+	{
+		const FRotator BoidRotation = Direction.Rotation();
+		const FVector WorldDirection = BoidRotation.RotateVector(LocalDirection);
+		const FVector RayStart = BoidPosition;
+		const FVector RayEnd = BoidPosition + (WorldDirection * AvoidanceDistance);
+
+		FHitResult HitResult;
+		FCollisionQueryParams QueryParams;
+		QueryParams.AddIgnoredActor(this);
+
+		for (ABoid* OtherBoid : AllBoids)
+		{
+			if (OtherBoid && OtherBoid != this) {
+				QueryParams.AddIgnoredActor(OtherBoid);
+			}
+		}
+
+		const bool bHit = GetWorld()->LineTraceSingleByChannel(
+			HitResult,
+			RayStart,
+			RayEnd,
+			ECC_Visibility,
+			QueryParams
+		);
+
+		if (bHit) {
+			const FVector ToHit = (HitResult.ImpactPoint - BoidPosition).GetSafeNormal();
+			const FVector AvoidDirecttion = -ToHit;
+			const float HitDistance = FVector::Dist(BoidPosition, HitResult.ImpactPoint);
+			const float Weight = 1.0f - (HitDistance / AvoidanceDistance);
+
+			AvoidanceVector += AvoidDirecttion * Weight;
+			HitCount++;
+
+			if (Spawner->ShowDebugAvoidance) {
+				DrawDebugLine(
+					GetWorld(),
+					RayStart,
+					HitResult.ImpactPoint,
+					FColor::Red,
+					false,
+					-1.0f,
+					0,
+					3.0f
+				);
+				DrawDebugSphere(
+					GetWorld(),
+					HitResult.ImpactPoint,
+					5.0f,
+					8,
+					FColor::Red,
+					false,
+					-1.0f,
+					0,
+					2.0f
+				);
+			}
+		} else if (Spawner->ShowDebugAvoidance) {
+			DrawDebugLine(
+				GetWorld(),
+				RayStart,
+				RayEnd,
+				FColor::Green,
+				false,
+				-1.0f,
+				0,
+				1.0f
+			);
+		}
+	}
+
+	if (HitCount > 0) {
+		AvoidanceVector = AvoidanceVector.GetSafeNormal();
+		Direction = (Direction + AvoidanceVector * AvoidanceStrength).GetSafeNormal();
+
+		if (Spawner->ShowDebugAvoidance) {
+			DrawDebugLine(
+				GetWorld(),
+				BoidPosition,
+				BoidPosition + AvoidanceVector * 100.0f,
+				FColor::Purple,
+				false,
+				-1.0f,
+				0,
+				4.0f
+			);
+		}
+	}
+}
+
+TArray<FVector> ABoid::GenerateGoldenSpherePoints(int32 NumPoints) const
+{
+	TArray<FVector> Points;
+	Points.Reserve(NumPoints);
+
+	const float GoldenRatio = (1.0f + FMath::Sqrt(5.0f)) / 2.0f;
+
+	for (int32 i = 0; i < NumPoints; i++)
+	{
+		const float NormalizedIndex = static_cast<float>(i) / static_cast<float>(NumPoints);
+		const float CosTheta = 1.0f - 2.0f * NormalizedIndex;
+		const float Theta = FMath::Acos(CosTheta);
+
+		const float PhiDegrees = 360.0f * GoldenRatio * static_cast<float>(i);
+		const float Phi = FMath::DegreesToRadians(PhiDegrees);
+
+		const float SinTheta = FMath::Sin(Theta);
+		const FVector Point(
+			SinTheta * FMath::Cos(Phi),
+			SinTheta * FMath::Sin(Phi),
+			CosTheta
+		);
+
+		Points.Add(Point);
+	}
+
+	return Points;
 }
 
 bool ABoid::IsInFieldOfView(const FVector& OtherPosition) const

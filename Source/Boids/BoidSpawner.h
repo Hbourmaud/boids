@@ -61,6 +61,18 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boid Behavior", meta = (ClampMin = "0.0", ClampMax = "180.0"))
 	float ViewAngle = 120.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boid Behavior")
+	float AvoidanceDistance = 250.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boid Behavior")
+	int32 AvoidanceRayCount = 8;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boid Behavior")
+	float AvoidanceStrength = 5.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boid Debug")
+	bool ShowDebugAvoidance = false;
+
 	UPROPERTY()
 	TArray<ABoid*> SpawnedBoids;
 

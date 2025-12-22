@@ -36,4 +36,8 @@ public:
 	void ApplyBoidBehaviors();
 
 	bool IsInFieldOfView(const FVector& OtherPosition) const;
+	
+	TArray<FVector> GenerateGoldenSpherePoints(int32 NumPoints) const;
+
+	void ApplyObjectAvoidance();
 };
