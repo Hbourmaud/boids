@@ -15,6 +15,7 @@ public:
 	ABoidSpawner();
 
 	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaTime) override;
 
 	UPROPERTY()
 	USceneComponent* Root;
@@ -78,4 +79,6 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Spawner")
 	void SpawnBoids();
+
+	void UpdateAllBoids(float DeltaTime);
 };

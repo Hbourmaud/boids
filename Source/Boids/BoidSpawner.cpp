@@ -4,7 +4,7 @@
 
 ABoidSpawner::ABoidSpawner()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 
 	Root = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 	RootComponent = Root;
@@ -15,6 +15,13 @@ void ABoidSpawner::BeginPlay()
 	Super::BeginPlay();
 
 	SpawnBoids();
+}
+
+void ABoidSpawner::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	UpdateAllBoids(DeltaTime);
 }
 
 void ABoidSpawner::SpawnBoids()
@@ -61,4 +68,28 @@ void ABoidSpawner::SpawnBoids()
 	}
 
 	UE_LOG(LogTemp, Log, TEXT("BoidSpawner: Spawned %d boids"), SpawnedBoids.Num());
+}
+
+void ABoidSpawner::UpdateAllBoids(float DeltaTime)
+{
+	const int32 NumBoids = SpawnedBoids.Num();
+
+	if (NumBoids == 0) {
+		return;
+	}
+
+	ParallelFor(NumBoids, [this](int32 Index)
+		{
+			ABoid* Boid = SpawnedBoids[Index];
+			if (Boid && Boid->IsValidLowLevel()) {
+				Boid->CalculateBoidBehaviors();
+			}
+		}
+	);
+
+	for (ABoid* Boid : SpawnedBoids) {
+		if (Boid && Boid->IsValidLowLevel()) {
+			Boid->ApplyMovement(DeltaTime);
+		}
+	}
 }

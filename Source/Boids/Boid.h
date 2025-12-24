@@ -13,8 +13,6 @@ public:
 
 	virtual void BeginPlay() override;
 
-	virtual void Tick(const float DeltaTime) override;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boid")
 	UStaticMeshComponent* Mesh;
 
@@ -33,11 +31,15 @@ public:
 	UPROPERTY()
 	TArray<ABoid*> AllBoids;
 
-	void ApplyBoidBehaviors();
+	void CalculateBoidBehaviors();
+
+	void ApplyMovement(float DeltaTime);
+
+	FVector NextDirection;
 
 	bool IsInFieldOfView(const FVector& OtherPosition) const;
 	
 	TArray<FVector> GenerateGoldenSpherePoints(int32 NumPoints) const;
 
-	void ApplyObjectAvoidance();
+	FVector CalculateObjectAvoidance();
 };

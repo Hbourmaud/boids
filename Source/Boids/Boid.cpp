@@ -2,7 +2,7 @@
 
 ABoid::ABoid()
 {
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 
 	Root = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 	RootComponent = Root;
@@ -25,27 +25,14 @@ void ABoid::BeginPlay()
 	Super::BeginPlay();
 
 	Direction = GetActorForwardVector();
+	NextDirection = Direction;
 }
 
-void ABoid::Tick(const float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-
-	ApplyObjectAvoidance();
-
-	ApplyBoidBehaviors();
-
-	const FVector CurrentPosition = GetActorLocation();
-	const FVector NewPosition = CurrentPosition + (Direction * Speed * DeltaTime);
-
-	SetActorLocation(NewPosition);
-	SetActorRotation(Direction.Rotation());
-}
-
-void ABoid::ApplyBoidBehaviors()
+void ABoid::CalculateBoidBehaviors()
 {
 	if (!Spawner || AllBoids.Num() == 0)
 	{
+		NextDirection = Direction;
 		return;
 	}
 
@@ -202,13 +189,15 @@ void ABoid::ApplyBoidBehaviors()
 		NewDirection += SeparationDirection * SeparationStrength;
 	}
 
-	Direction = NewDirection.GetSafeNormal();
+	NewDirection += CalculateObjectAvoidance();
+
+	NextDirection = NewDirection.GetSafeNormal();
 
 	if (Spawner->ShowDebugSeparation) {
 		DrawDebugLine(
 			GetWorld(),
 			BoidPosition,
-			BoidPosition + Direction * 100.0f,
+			BoidPosition + NextDirection * 100.0f,
 			FColor::Green,
 			false,
 			-1.0f,
@@ -218,11 +207,22 @@ void ABoid::ApplyBoidBehaviors()
 	}
 }
 
-void ABoid::ApplyObjectAvoidance()
+void ABoid::ApplyMovement(float DeltaTime)
+{
+	Direction = NextDirection;
+
+	const FVector CurrentPosition = GetActorLocation();
+	const FVector NewPosition = CurrentPosition + (Direction * Speed * DeltaTime);
+
+	SetActorLocation(NewPosition);
+	SetActorRotation(Direction.Rotation());
+}
+
+FVector ABoid::CalculateObjectAvoidance()
 {
 	if (!Spawner)
 	{
-		return;
+		return FVector::ZeroVector;
 	}
 
 	const FVector BoidPosition = GetActorLocation();
@@ -309,7 +309,6 @@ void ABoid::ApplyObjectAvoidance()
 
 	if (HitCount > 0) {
 		AvoidanceVector = AvoidanceVector.GetSafeNormal();
-		Direction = (Direction + AvoidanceVector * AvoidanceStrength).GetSafeNormal();
 
 		if (Spawner->ShowDebugAvoidance) {
 			DrawDebugLine(
@@ -323,7 +322,11 @@ void ABoid::ApplyObjectAvoidance()
 				4.0f
 			);
 		}
+
+		return (AvoidanceVector * AvoidanceStrength).GetSafeNormal();
 	}
+
+	return FVector::ZeroVector;
 }
 
 TArray<FVector> ABoid::GenerateGoldenSpherePoints(int32 NumPoints) const
@@ -337,15 +340,13 @@ TArray<FVector> ABoid::GenerateGoldenSpherePoints(int32 NumPoints) const
 	{
 		const float NormalizedIndex = static_cast<float>(i) / static_cast<float>(NumPoints);
 		const float CosTheta = 1.0f - 2.0f * NormalizedIndex;
-		const float Theta = FMath::Acos(CosTheta);
+		const float SinTheta = FMath::Sqrt(1.0f - CosTheta * CosTheta);
 
-		const float PhiDegrees = 360.0f * GoldenRatio * static_cast<float>(i);
-		const float Phi = FMath::DegreesToRadians(PhiDegrees);
+		const float PhiRadians = FMath::DegreesToRadians(360.0f * GoldenRatio * static_cast<float>(i));
 
-		const float SinTheta = FMath::Sin(Theta);
 		const FVector Point(
-			SinTheta * FMath::Cos(Phi),
-			SinTheta * FMath::Sin(Phi),
+			SinTheta * FMath::Cos(PhiRadians),
+			SinTheta * FMath::Sin(PhiRadians),
 			CosTheta
 		);
 
