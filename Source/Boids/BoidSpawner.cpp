@@ -61,14 +61,6 @@ void ABoidSpawner::SpawnBoids()
 		}
 	}
 
-	for (ABoid* Boid : SpawnedBoids)
-	{
-		if (Boid)
-		{
-			Boid->AllBoids = SpawnedBoids;
-		}
-	}
-
 	UE_LOG(LogTemp, Log, TEXT("BoidSpawner: Spawned %d boids"), SpawnedBoids.Num());
 }
 

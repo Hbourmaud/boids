@@ -28,9 +28,6 @@ public:
 	UPROPERTY()
 	FVector Direction;
 
-	UPROPERTY()
-	TArray<ABoid*> AllBoids;
-
 	void CalculateBoidBehaviors();
 
 	void ApplyMovement(float DeltaTime);

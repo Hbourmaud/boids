@@ -44,12 +44,12 @@ TArray<ABoid*> ABoid::GetNearbyBoids() const {
 		return SpatialGrid->GetNearbyBoids(GetActorLocation(), MaxRange);
 	}
 
-	return AllBoids;
+	return TArray<ABoid*>();
 }
 
 void ABoid::CalculateBoidBehaviors()
 {
-	if (!Spawner || AllBoids.Num() == 0)
+	if (!Spawner)
 	{
 		NextDirection = Direction;
 		return;
@@ -280,7 +280,9 @@ FVector ABoid::CalculateObjectAvoidance()
 		FCollisionQueryParams QueryParams;
 		QueryParams.AddIgnoredActor(this);
 
-		for (ABoid* OtherBoid : AllBoids)
+		const TArray<ABoid*> NearbyBoids = GetNearbyBoids();
+
+		for (ABoid* OtherBoid : NearbyBoids)
 		{
 			if (OtherBoid && OtherBoid != this) {
 				QueryParams.AddIgnoredActor(OtherBoid);
