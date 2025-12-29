@@ -35,11 +35,13 @@ public:
 
 	void ApplyMovement(float DeltaTime);
 
+private:
 	FVector NextDirection;
 
 	bool IsInFieldOfView(const FVector& OtherPosition) const;
 	
 	TArray<FVector> GenerateGoldenSpherePoints(int32 NumPoints) const;
-
 	FVector CalculateObjectAvoidance();
+
+	TArray<ABoid*> GetNearbyBoids() const;
 };

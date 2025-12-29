@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "SpatialGrid.h"
 #include "BoidSpawner.generated.h"
 
 class ABoid;
@@ -74,6 +75,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boid Debug")
 	bool ShowDebugAvoidance = false;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spatial Partitioning")
+	float GridCellSize = 400.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spatial Partitioning")
+	float WorldExtent = 5000.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boid Debug")
+	bool ShowDebugGrid = false;
+
 	UPROPERTY()
 	TArray<ABoid*> SpawnedBoids;
 
@@ -81,4 +91,12 @@ public:
 	void SpawnBoids();
 
 	void UpdateAllBoids(float DeltaTime);
+
+	FSpatialGrid* GetSpatialGrid() { return SpatialGrid.Get(); }
+
+private:
+	TUniquePtr<FSpatialGrid> SpatialGrid;
+
+	void InitializeSpatialGrid();
+	void RebuildSpatialGrid();
 };

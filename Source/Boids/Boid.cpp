@@ -28,6 +28,25 @@ void ABoid::BeginPlay()
 	NextDirection = Direction;
 }
 
+TArray<ABoid*> ABoid::GetNearbyBoids() const {
+	if (!Spawner) {
+		return TArray<ABoid*>();
+	}
+
+	FSpatialGrid* SpatialGrid = Spawner->GetSpatialGrid();
+	if (SpatialGrid) {
+		const float MaxRange = FMath::Max3(
+			Spawner->MaxSeparationDistance,
+			Spawner->MaxAlignmentDistance,
+			Spawner->MaxCohesionDistance
+		);
+
+		return SpatialGrid->GetNearbyBoids(GetActorLocation(), MaxRange);
+	}
+
+	return AllBoids;
+}
+
 void ABoid::CalculateBoidBehaviors()
 {
 	if (!Spawner || AllBoids.Num() == 0)
@@ -54,7 +73,10 @@ void ABoid::CalculateBoidBehaviors()
 	int32 AlignmentCount = 0;
 	int32 CohesionCount = 0;
 
-	for (ABoid* OtherBoid : AllBoids)
+	const TArray<ABoid*> NearbyBoids = GetNearbyBoids();
+
+
+	for (ABoid* OtherBoid : NearbyBoids)
 	{
 		if (OtherBoid == this || !OtherBoid)
 		{
@@ -63,6 +85,18 @@ void ABoid::CalculateBoidBehaviors()
 
 		const FVector OtherPosition = OtherBoid->GetActorLocation();
 		const FVector DifferenceVector = BoidPosition - OtherPosition;
+		const float DistanceSq = DifferenceVector.SizeSquared();
+
+		const float MaxDistSq = FMath::Max3(
+			MaxSeparationDist * MaxSeparationDist,
+			MaxAlignmentDist * MaxAlignmentDist,
+			MaxCohesionDist * MaxCohesionDist
+		);
+
+		if (DistanceSq > MaxDistSq) {
+			continue;
+		}
+
 		const float Distance = DifferenceVector.Size();
 
 		const bool IsInFOV = IsInFieldOfView(OtherPosition);
