@@ -57,15 +57,15 @@ void ABoid::CalculateBoidBehaviors()
 
 	const FVector BoidPosition = GetActorLocation();
 
-	const float MaxSeparationDist = Spawner->MaxSeparationDistance;
-	const float MaxAlignmentDist = Spawner->MaxAlignmentDistance;
-	const float MaxCohesionDist = Spawner->MaxCohesionDistance;
+	const float MaxSeparationDistSq = Spawner->MaxSeparationDistance * Spawner->MaxSeparationDistance;
+	const float MaxAlignmentDistSq = Spawner->MaxAlignmentDistance * Spawner->MaxAlignmentDistance;
+	const float MaxCohesionDistSq = Spawner->MaxCohesionDistance * Spawner->MaxCohesionDistance;
 
 	const float SeparationStrength = Spawner->SeparationStrength;
 	const float AlignmentStrength = Spawner->AlignmentStrength;
 	const float CohesionStrength = Spawner->CohesionStrength;
 
-	FVector SeparationDirection = Direction;
+	FVector SeparationDirection = FVector::ZeroVector;
 	FVector AlignmentDirection = FVector::ZeroVector;
 	FVector Centroid = FVector::ZeroVector;
 
@@ -75,8 +75,7 @@ void ABoid::CalculateBoidBehaviors()
 
 	const TArray<ABoid*> NearbyBoids = GetNearbyBoids();
 
-
-	for (ABoid* OtherBoid : NearbyBoids)
+	for (const ABoid* OtherBoid : NearbyBoids)
 	{
 		if (OtherBoid == this || !OtherBoid)
 		{
@@ -87,27 +86,20 @@ void ABoid::CalculateBoidBehaviors()
 		const FVector DifferenceVector = BoidPosition - OtherPosition;
 		const float DistanceSq = DifferenceVector.SizeSquared();
 
-		const float MaxDistSq = FMath::Max3(
-			MaxSeparationDist * MaxSeparationDist,
-			MaxAlignmentDist * MaxAlignmentDist,
-			MaxCohesionDist * MaxCohesionDist
-		);
-
-		if (DistanceSq > MaxDistSq) {
+		if (DistanceSq > MaxCohesionDistSq) {
 			continue;
 		}
-
-		const float Distance = DifferenceVector.Size();
 
 		const bool IsInFOV = IsInFieldOfView(OtherPosition);
 
 		// SEPARATION
-		if (IsInFOV && Distance < MaxSeparationDist && Distance > 0.0f)
+		if (IsInFOV && DistanceSq < MaxSeparationDistSq && DistanceSq > SMALL_NUMBER)
 		{
-			const float Ratio = 1.0f - (Distance / MaxSeparationDist);
-			const FVector OtherDirection = DifferenceVector.GetSafeNormal();
+			const float Distance = FMath::Sqrt(DistanceSq);
+			const float Ratio = 1.0f - (Distance / Spawner->MaxSeparationDistance);
+			const FVector OtherDirection = DifferenceVector / Distance;
 
-			SeparationDirection += OtherDirection * Ratio * SeparationStrength;
+			SeparationDirection += OtherDirection * Ratio;
 			SeparationCount++;
 
 			if (Spawner->ShowDebugSeparation) {
@@ -125,7 +117,7 @@ void ABoid::CalculateBoidBehaviors()
 		}
 
 		// ALIGNMENT
-		if (IsInFOV && Distance < MaxAlignmentDist)
+		if (IsInFOV && DistanceSq < MaxAlignmentDistSq)
 		{
 			AlignmentDirection += OtherBoid->Direction;
 			AlignmentCount++;
@@ -144,7 +136,7 @@ void ABoid::CalculateBoidBehaviors()
 		}
 
 		// COHESION
-		if (IsInFOV && Distance < MaxCohesionDist)
+		if (IsInFOV && DistanceSq < MaxCohesionDistSq)
 		{
 			Centroid += OtherPosition;
 			CohesionCount++;
