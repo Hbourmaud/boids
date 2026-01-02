@@ -30,8 +30,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boid Behavior")
 	float BoidSpeed = 700.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boid Debug")
-	bool ShowDebugSeparation = false;
+	// SEPARATION
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boid Behavior")
 	float MaxSeparationDistance = 200.0f;
@@ -39,8 +38,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boid Behavior")
 	float SeparationStrength = 1.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boid Debug")
-	bool ShowDebugAlignment = false;
+	// ALIGNMENT
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boid Behavior")
 	float MaxAlignmentDistance = 300.0f;
@@ -48,8 +46,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boid Behavior")
 	float AlignmentStrength = 0.5f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boid Debug")
-	bool ShowDebugCohesion = false;
+	// COHESION
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boid Behavior")
 	float MaxCohesionDistance = 400.0f;
@@ -57,11 +54,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boid Behavior")
 	float CohesionStrength = 0.3f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boid Debug")
-	bool ShowDebugFOV = false;
+	// FOV
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boid Behavior", meta = (ClampMin = "0.0", ClampMax = "180.0"))
 	float ViewAngle = 120.0f;
+
+	// OBJECT AVOIDANCE
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boid Behavior")
 	float AvoidanceDistance = 250.0f;
@@ -72,8 +70,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boid Behavior")
 	float AvoidanceStrength = 5.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boid Debug")
-	bool ShowDebugAvoidance = false;
+	// CHUNKS
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spatial Partitioning")
 	float GridCellSize = 400.0f;

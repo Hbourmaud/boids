@@ -59,7 +59,7 @@ FIntVector FSpatialGrid::GetCellIndex(const FVector& Position) const {
 }
 
 int32 FSpatialGrid::CellToHash(const FIntVector& CellIndex) const {
-	// todo comment
+	// Converts 3D coords to unique 1D hash
 	return CellIndex.X + CellIndex.Y * GridSizeX + CellIndex.Z * GridSizeX * GridSizeY;
 }
 

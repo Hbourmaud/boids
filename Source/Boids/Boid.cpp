@@ -1,7 +1,6 @@
 ﻿#include "Boid.h"
 
-ABoid::ABoid()
-{
+ABoid::ABoid() {
 	PrimaryActorTick.bCanEverTick = false;
 
 	Root = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
@@ -13,15 +12,13 @@ ABoid::ABoid()
 	Mesh->SetEnableGravity(false);
 
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> ConeMeshAsset(TEXT("/Engine/BasicShapes/Cone"));
-	if (ConeMeshAsset.Succeeded())
-	{
+	if (ConeMeshAsset.Succeeded()) {
 		Mesh->SetStaticMesh(ConeMeshAsset.Object);
 		Mesh->SetWorldRotation(FRotator(-90.0f, 0.0f, 0.0f));
 	}
 }
 
-void ABoid::BeginPlay()
-{
+void ABoid::BeginPlay() {
 	Super::BeginPlay();
 
 	Direction = GetActorForwardVector();
@@ -47,10 +44,8 @@ TArray<ABoid*> ABoid::GetNearbyBoids() const {
 	return TArray<ABoid*>();
 }
 
-void ABoid::CalculateBoidBehaviors()
-{
-	if (!Spawner)
-	{
+void ABoid::CalculateBoidBehaviors() {
+	if (!Spawner) {
 		NextDirection = Direction;
 		return;
 	}
@@ -75,10 +70,8 @@ void ABoid::CalculateBoidBehaviors()
 
 	const TArray<ABoid*> NearbyBoids = GetNearbyBoids();
 
-	for (const ABoid* OtherBoid : NearbyBoids)
-	{
-		if (OtherBoid == this || !OtherBoid)
-		{
+	for (const ABoid* OtherBoid : NearbyBoids) {
+		if (OtherBoid == this || !OtherBoid) {
 			continue;
 		}
 
@@ -93,124 +86,45 @@ void ABoid::CalculateBoidBehaviors()
 		const bool IsInFOV = IsInFieldOfView(OtherPosition);
 
 		// SEPARATION
-		if (IsInFOV && DistanceSq < MaxSeparationDistSq && DistanceSq > SMALL_NUMBER)
-		{
+		if (IsInFOV && DistanceSq < MaxSeparationDistSq && DistanceSq > SMALL_NUMBER) {
 			const float Distance = FMath::Sqrt(DistanceSq);
 			const float Ratio = 1.0f - (Distance / Spawner->MaxSeparationDistance);
 			const FVector OtherDirection = DifferenceVector / Distance;
 
 			SeparationDirection += OtherDirection * Ratio;
 			SeparationCount++;
-
-			if (Spawner->ShowDebugSeparation) {
-				DrawDebugLine(
-					GetWorld(),
-					BoidPosition,
-					OtherPosition,
-					FColor::Red,
-					false,
-					-1.0f,
-					0,
-					2.0f
-				);
-			}
 		}
 
 		// ALIGNMENT
-		if (IsInFOV && DistanceSq < MaxAlignmentDistSq)
-		{
+		if (IsInFOV && DistanceSq < MaxAlignmentDistSq) {
 			AlignmentDirection += OtherBoid->Direction;
 			AlignmentCount++;
-
-			if (Spawner->ShowDebugAlignment) {
-				DrawDebugLine(
-					GetWorld(),
-					BoidPosition,
-					OtherPosition,
-					FColor::Blue,
-					false,
-					-1.0f,
-					0, 1.0f
-				);
-			}
 		}
 
 		// COHESION
-		if (IsInFOV && DistanceSq < MaxCohesionDistSq)
-		{
+		if (IsInFOV && DistanceSq < MaxCohesionDistSq) {
 			Centroid += OtherPosition;
 			CohesionCount++;
-
-			if (Spawner->ShowDebugCohesion) {
-				DrawDebugLine(
-					GetWorld(),
-					BoidPosition,
-					OtherPosition,
-					FColor::Cyan,
-					false,
-					-1.0f,
-					0,
-					1.0f
-				);
-			}
 		}
 	}
 
 	FVector NewDirection = Direction;
 
-	if (CohesionCount > 0)
-	{
+	if (CohesionCount > 0) {
 		Centroid /= CohesionCount;
 
 		const FVector CohesionDirection = (Centroid - BoidPosition).GetSafeNormal();
 
 		NewDirection += CohesionDirection * CohesionStrength;
-
-		if (Spawner->ShowDebugCohesion) {
-			DrawDebugLine(
-				GetWorld(),
-				BoidPosition,
-				Centroid,
-				FColor::Magenta,
-				false,
-				-1.0f,
-				0, 2.0f
-			);
-			DrawDebugSphere(
-				GetWorld(),
-				Centroid,
-				10.0f,
-				8,
-				FColor::Magenta,
-				false,
-				-1.0f,
-				0,
-				2.0f
-			);
-		}
 	}
 
-	if (AlignmentCount > 0)
-	{
+	if (AlignmentCount > 0)	{
 		AlignmentDirection = AlignmentDirection.GetSafeNormal();
 
 		NewDirection += AlignmentDirection * AlignmentStrength;
-
-		if (Spawner->ShowDebugAlignment) {
-			DrawDebugLine(
-				GetWorld(),
-				BoidPosition,
-				BoidPosition + AlignmentDirection * 80.0f,
-				FColor::Yellow,
-				false,
-				-1.0f,
-				0, 2.0f
-			);
-		}
 	}
 
-	if (SeparationCount > 0)
-	{
+	if (SeparationCount > 0) {
 		SeparationDirection = SeparationDirection.GetSafeNormal();
 		NewDirection += SeparationDirection * SeparationStrength;
 	}
@@ -218,23 +132,9 @@ void ABoid::CalculateBoidBehaviors()
 	NewDirection += CalculateObjectAvoidance();
 
 	NextDirection = NewDirection.GetSafeNormal();
-
-	if (Spawner->ShowDebugSeparation) {
-		DrawDebugLine(
-			GetWorld(),
-			BoidPosition,
-			BoidPosition + NextDirection * 100.0f,
-			FColor::Green,
-			false,
-			-1.0f,
-			0,
-			3.0f
-		);
-	}
 }
 
-void ABoid::ApplyMovement(float DeltaTime)
-{
+void ABoid::ApplyMovement(float DeltaTime) {
 	Direction = NextDirection;
 
 	const FVector CurrentPosition = GetActorLocation();
@@ -244,10 +144,8 @@ void ABoid::ApplyMovement(float DeltaTime)
 	SetActorRotation(Direction.Rotation());
 }
 
-FVector ABoid::CalculateObjectAvoidance()
-{
-	if (!Spawner)
-	{
+FVector ABoid::CalculateObjectAvoidance() {
+	if (!Spawner) {
 		return FVector::ZeroVector;
 	}
 
@@ -261,8 +159,7 @@ FVector ABoid::CalculateObjectAvoidance()
 	FVector AvoidanceVector = FVector::ZeroVector;
 	int32 HitCount = 0;
 
-	for (const FVector& LocalDirection : RayDirections)
-	{
+	for (const FVector& LocalDirection : RayDirections)	{
 		const FRotator BoidRotation = Direction.Rotation();
 		const FVector WorldDirection = BoidRotation.RotateVector(LocalDirection);
 		const FVector RayStart = BoidPosition;
@@ -274,8 +171,7 @@ FVector ABoid::CalculateObjectAvoidance()
 
 		const TArray<ABoid*> NearbyBoids = GetNearbyBoids();
 
-		for (ABoid* OtherBoid : NearbyBoids)
-		{
+		for (ABoid* OtherBoid : NearbyBoids) {
 			if (OtherBoid && OtherBoid != this) {
 				QueryParams.AddIgnoredActor(OtherBoid);
 			}
@@ -297,59 +193,11 @@ FVector ABoid::CalculateObjectAvoidance()
 
 			AvoidanceVector += AvoidDirecttion * Weight;
 			HitCount++;
-
-			if (Spawner->ShowDebugAvoidance) {
-				DrawDebugLine(
-					GetWorld(),
-					RayStart,
-					HitResult.ImpactPoint,
-					FColor::Red,
-					false,
-					-1.0f,
-					0,
-					3.0f
-				);
-				DrawDebugSphere(
-					GetWorld(),
-					HitResult.ImpactPoint,
-					5.0f,
-					8,
-					FColor::Red,
-					false,
-					-1.0f,
-					0,
-					2.0f
-				);
-			}
-		} else if (Spawner->ShowDebugAvoidance) {
-			DrawDebugLine(
-				GetWorld(),
-				RayStart,
-				RayEnd,
-				FColor::Green,
-				false,
-				-1.0f,
-				0,
-				1.0f
-			);
 		}
 	}
 
 	if (HitCount > 0) {
 		AvoidanceVector = AvoidanceVector.GetSafeNormal();
-
-		if (Spawner->ShowDebugAvoidance) {
-			DrawDebugLine(
-				GetWorld(),
-				BoidPosition,
-				BoidPosition + AvoidanceVector * 100.0f,
-				FColor::Purple,
-				false,
-				-1.0f,
-				0,
-				4.0f
-			);
-		}
 
 		return (AvoidanceVector * AvoidanceStrength).GetSafeNormal();
 	}
@@ -357,15 +205,13 @@ FVector ABoid::CalculateObjectAvoidance()
 	return FVector::ZeroVector;
 }
 
-TArray<FVector> ABoid::GenerateGoldenSpherePoints(int32 NumPoints) const
-{
+TArray<FVector> ABoid::GenerateGoldenSpherePoints(int32 NumPoints) const {
 	TArray<FVector> Points;
 	Points.Reserve(NumPoints);
 
 	const float GoldenRatio = (1.0f + FMath::Sqrt(5.0f)) / 2.0f;
 
-	for (int32 i = 0; i < NumPoints; i++)
-	{
+	for (int32 i = 0; i < NumPoints; i++) {
 		const float NormalizedIndex = static_cast<float>(i) / static_cast<float>(NumPoints);
 		const float CosTheta = 1.0f - 2.0f * NormalizedIndex;
 		const float SinTheta = FMath::Sqrt(1.0f - CosTheta * CosTheta);
@@ -384,37 +230,21 @@ TArray<FVector> ABoid::GenerateGoldenSpherePoints(int32 NumPoints) const
 	return Points;
 }
 
-bool ABoid::IsInFieldOfView(const FVector& OtherPosition) const
-{
-	if (!Spawner)
-	{
-		return true; // needed
+bool ABoid::IsInFieldOfView(const FVector& OtherPosition) const {
+	if (!Spawner) {
+		return true;
 	}
 
 	const FVector BoidPosition = GetActorLocation();
 	const FVector BoidForward = Direction;
 	const FVector DistanceToOther = (OtherPosition - BoidPosition).GetSafeNormal();
 
-	const float DotProduct = FVector::DotProduct(BoidForward, DistanceToOther); // to rename
+	const float DotProduct = FVector::DotProduct(BoidForward, DistanceToOther);
 
-	const float AngleRadians = FMath::Acos(DotProduct); // to rename
+	const float AngleRadians = FMath::Acos(DotProduct);
 	const float AngleDegrees = FMath::RadiansToDegrees(AngleRadians);
 
-	const bool IsInView = AngleDegrees <= Spawner->ViewAngle; // refacto ?
-
-	if (Spawner->ShowDebugFOV && !IsInView)
-	{
-		DrawDebugLine(
-			GetWorld(),
-			BoidPosition,
-			OtherPosition,
-			FColor::Orange,
-			false,
-			-1.0f,
-			0,
-			1.0f
-		);
-	}
+	const bool IsInView = AngleDegrees <= Spawner->ViewAngle;
 
 	return IsInView;
 }
